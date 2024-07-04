@@ -2,12 +2,12 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
-	"runtime"
 	"time"
 
 	"github.com/fatih/color"
@@ -15,7 +15,7 @@ import (
 	"github.com/ysmood/goob"
 )
 
-type Logger struct{}
+type logger struct{}
 
 var (
 	isConnected bool
@@ -45,7 +45,7 @@ func connect(app string) {
 	header := http.Header{
 		"Logger-App-Name": []string{app},
 	}
-	serverUrl, err := url.Parse("ws://localhost:7000/logger")
+	serverUrl, err := url.Parse("ws://127.0.0.1:7000/logger")
 	if err != nil {
 		os.Exit(0)
 	}
@@ -71,8 +71,10 @@ START:
 	for {
 		select {
 		case e := <-Queue.Subscribe(context.TODO()):
-			if err := con.WriteJSON(e); err != nil {
-				errChan <- fmt.Errorf("error sending data: %v", err)
+			if isConnected {
+				if err := con.WriteJSON(e); err != nil {
+					errChan <- fmt.Errorf("error sending data: %v", err)
+				}
 			}
 		case err := <-errChan:
 			reconnect = true
@@ -95,81 +97,11 @@ START:
 	}
 }
 
-func Register(app string) {
+func Register(app string) (*logger, error) {
 	Queue = goob.New(context.Background())
 	connect(app)
-}
-
-func Error(err error, msg string, tree ...int) {
-	num := 0
-	if len(tree) > 0 {
-		num = tree[0]
+	if !isConnected {
+		return nil, errors.New("client did not connect")
 	}
-	pc, file, line, ok := runtime.Caller(num)
-	if ok {
-		log := &Log{
-			File:    file,
-			Line:    line,
-			Level:   Err,
-			Message: msg,
-			Error:   err.Error(),
-			Func:    runtime.FuncForPC(pc).Name(),
-		}
-		Queue.Publish(log)
-	}
-}
-
-func Warning(msg string, tree ...int) {
-	num := 0
-	if len(tree) > 0 {
-		num = tree[0]
-	}
-	pc, file, line, ok := runtime.Caller(num)
-	if ok {
-		log := &Log{
-			File:    file,
-			Line:    line,
-			Level:   Warn,
-			Message: msg,
-			Func:    runtime.FuncForPC(pc).Name(),
-		}
-		Queue.Publish(log)
-	}
-}
-
-func Info(msg string, tree ...int) {
-	num := 0
-	if len(tree) > 0 {
-		num = tree[0]
-	}
-	pc, file, line, ok := runtime.Caller(num)
-	if ok {
-		log := &Log{
-			File:    file,
-			Line:    line,
-			Level:   Inf,
-			Message: msg,
-			Func:    runtime.FuncForPC(pc).Name(),
-		}
-		Queue.Publish(log)
-	}
-}
-
-func Fatal(err error, msg string, tree ...int) {
-	num := 0
-	if len(tree) > 0 {
-		num = tree[0]
-	}
-	pc, file, line, ok := runtime.Caller(num)
-	if ok {
-		log := &Log{
-			File:    file,
-			Line:    line,
-			Level:   Fat,
-			Message: msg,
-			Error:   err.Error(),
-			Func:    runtime.FuncForPC(pc).Name(),
-		}
-		Queue.Publish(log)
-	}
+	return &logger{}, nil
 }
