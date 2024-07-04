@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
@@ -44,13 +45,17 @@ func connect(app string) {
 	header := ws.HandshakeHeaderHTTP{
 		"Logger-App-Name": []string{app},
 	}
+	serverUrl, err := url.Parse("ws://localhost:7000/logger")
+	if err != nil {
+		os.Exit(0)
+	}
 START:
 	dialer := ws.Dialer{
 		Header:          header,
 		ReadBufferSize:  4096,
 		WriteBufferSize: 4096,
 	}
-	con, _, _, err := dialer.Dial(context.Background(), "ws://localhost:7000/logger")
+	con, _, _, err := dialer.Dial(context.Background(), serverUrl.String())
 	if err != nil {
 		time.Sleep(5 * time.Second)
 		goto START
