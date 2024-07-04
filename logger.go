@@ -14,20 +14,22 @@ import (
 	"github.com/ysmood/goob"
 )
 
-type Logger struct{}
-
 var (
 	chExit  = make(chan struct{})
 	errChan = make(chan error, 1)
 	Queue   *goob.Observable
 )
 
+func init() {
+	Queue = goob.New(context.Background())
+}
+
 func consoleMessage() {
 	c := color.New(color.FgHiGreen, color.Bold)
 	c.Println("Logger client successfully connected to the Server")
 }
 
-func connect(app string) {
+func Register(app string) {
 	reconnect := false
 	defer func() {
 		if r := recover(); r != nil {
@@ -35,7 +37,7 @@ func connect(app string) {
 			fmt.Println("websocket panic error", err)
 			if reconnect {
 				time.Sleep(5 * time.Second)
-				connect(app)
+				Register(app)
 			}
 		}
 	}()
@@ -83,10 +85,4 @@ START:
 			return
 		}
 	}
-}
-
-func Register(app string) (*Logger, error) {
-	Queue = goob.New(context.Background())
-	connect(app)
-	return &Logger{}, nil
 }
