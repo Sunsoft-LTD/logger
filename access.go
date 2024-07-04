@@ -1,5 +1,5 @@
 package logger
 
-func (*logger) AccessLog(log *Access) {
+func (*Logger) AccessLog(log *Access) {
 	Queue.Publish(log)
 }

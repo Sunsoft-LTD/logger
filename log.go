@@ -2,7 +2,7 @@ package logger
 
 import "runtime"
 
-func (*logger) Error(err error, msg string, tree ...int) {
+func (*Logger) Error(err error, msg string, tree ...int) {
 	num := 0
 	if len(tree) > 0 {
 		num = tree[0]
@@ -21,7 +21,7 @@ func (*logger) Error(err error, msg string, tree ...int) {
 	}
 }
 
-func (*logger) Warning(msg string, tree ...int) {
+func (*Logger) Warning(msg string, tree ...int) {
 	num := 0
 	if len(tree) > 0 {
 		num = tree[0]
@@ -39,7 +39,7 @@ func (*logger) Warning(msg string, tree ...int) {
 	}
 }
 
-func (*logger) Info(msg string, tree ...int) {
+func (*Logger) Info(msg string, tree ...int) {
 	num := 0
 	if len(tree) > 0 {
 		num = tree[0]
@@ -57,7 +57,7 @@ func (*logger) Info(msg string, tree ...int) {
 	}
 }
 
-func (*logger) Fatal(err error, msg string, tree ...int) {
+func (*Logger) Fatal(err error, msg string, tree ...int) {
 	num := 0
 	if len(tree) > 0 {
 		num = tree[0]

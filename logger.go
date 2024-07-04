@@ -15,7 +15,7 @@ import (
 	"github.com/ysmood/goob"
 )
 
-type logger struct{}
+type Logger struct{}
 
 var (
 	isConnected bool
@@ -97,11 +97,11 @@ START:
 	}
 }
 
-func Register(app string) (*logger, error) {
+func Register(app string) (*Logger, error) {
 	Queue = goob.New(context.Background())
 	connect(app)
 	if !isConnected {
 		return nil, errors.New("client did not connect")
 	}
-	return &logger{}, nil
+	return &Logger{}, nil
 }
