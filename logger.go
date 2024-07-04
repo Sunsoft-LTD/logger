@@ -2,7 +2,6 @@ package logger
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,10 +17,9 @@ import (
 type Logger struct{}
 
 var (
-	isConnected bool
-	chExit      = make(chan struct{})
-	errChan     = make(chan error, 1)
-	Queue       *goob.Observable
+	chExit  = make(chan struct{})
+	errChan = make(chan error, 1)
+	Queue   *goob.Observable
 )
 
 func consoleMessage() {
@@ -32,7 +30,6 @@ func consoleMessage() {
 func connect(app string) {
 	reconnect := false
 	defer func() {
-		isConnected = false
 		if r := recover(); r != nil {
 			err, _ := r.(error)
 			fmt.Println("websocket panic error", err)
@@ -55,7 +52,6 @@ START:
 		time.Sleep(5 * time.Second)
 		goto START
 	}
-	isConnected = true
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	defer signal.Stop(quit)
@@ -63,31 +59,23 @@ START:
 	pingTicker := time.NewTicker(3 * time.Minute)
 	defer func() {
 		pingTicker.Stop()
-		if isConnected {
-			con.Close()
-			isConnected = false
-		}
+		con.Close()
 	}()
 	for {
 		select {
 		case e := <-Queue.Subscribe(context.TODO()):
-			if isConnected {
-				if err := con.WriteJSON(e); err != nil {
-					errChan <- fmt.Errorf("error sending data: %v", err)
-				}
+			if err := con.WriteJSON(e); err != nil {
+				errChan <- fmt.Errorf("error sending data: %v", err)
 			}
 		case err := <-errChan:
 			reconnect = true
-			isConnected = false
 			panic(err)
 		case <-quit:
 			close(chExit)
 		case <-pingTicker.C:
-			if isConnected {
-				if err := con.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
-					errChan <- fmt.Errorf("ping sending error")
-					return
-				}
+			if err := con.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
+				errChan <- fmt.Errorf("ping sending error")
+				return
 			}
 		case <-chExit:
 			con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
@@ -100,8 +88,5 @@ START:
 func Register(app string) (*Logger, error) {
 	Queue = goob.New(context.Background())
 	connect(app)
-	if !isConnected {
-		return nil, errors.New("client did not connect")
-	}
 	return &Logger{}, nil
 }
