@@ -2,6 +2,7 @@ package logger
 
 import "runtime"
 
+// Error log
 func (*Logger) Error(err error, msg string, tree ...int) {
 	num := 1
 	if len(tree) > 0 {
