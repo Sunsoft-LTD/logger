@@ -2,8 +2,8 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"github.com/gobwas/ws"
+	"github.com/gorilla/websocket"
 	"github.com/ysmood/goob"
 )
 
@@ -42,7 +42,7 @@ func connect(app string) {
 			}
 		}
 	}()
-	header := ws.HandshakeHeaderHTTP{
+	header := http.Header{
 		"Logger-App-Name": []string{app},
 	}
 	serverUrl, err := url.Parse("ws://localhost:7000/logger")
@@ -50,12 +50,7 @@ func connect(app string) {
 		os.Exit(0)
 	}
 START:
-	dialer := ws.Dialer{
-		Header:          header,
-		ReadBufferSize:  4096,
-		WriteBufferSize: 4096,
-	}
-	con, _, _, err := dialer.Dial(context.Background(), serverUrl.String())
+	con, _, err := websocket.DefaultDialer.Dial(serverUrl.String(), header)
 	if err != nil {
 		time.Sleep(5 * time.Second)
 		goto START
@@ -76,9 +71,8 @@ START:
 	for {
 		select {
 		case e := <-Queue.Subscribe(context.TODO()):
-			js, err := json.Marshal(e)
-			if err == nil {
-				con.Write(js)
+			if err := con.WriteJSON(e); err != nil {
+				errChan <- fmt.Errorf("error sending data: %v", err)
 			}
 		case err := <-errChan:
 			reconnect = true
@@ -88,14 +82,13 @@ START:
 			close(chExit)
 		case <-pingTicker.C:
 			if isConnected {
-				if _, err := con.Write(ws.CompiledPing); err != nil {
+				if err := con.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
 					errChan <- fmt.Errorf("ping sending error")
 					return
 				}
 			}
 		case <-chExit:
-			con.Write(ws.CompiledClose)
-			con.Write(ws.CompiledCloseNormalClosure)
+			con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 			os.Exit(0)
 			return
 		}
