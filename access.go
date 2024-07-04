@@ -1,5 +1,10 @@
 package logger
 
+import "fmt"
+
 func AccessLog(log *Access) {
-	Queue.Publish(log)
+	if err := conn.WriteJSON(log); err != nil {
+		fmt.Println(err)
+		errChan <- err
+	}
 }

@@ -1,6 +1,9 @@
 package logger
 
-import "runtime"
+import (
+	"fmt"
+	"runtime"
+)
 
 // Error log
 func Error(err error, msg string, tree ...int) {
@@ -18,7 +21,10 @@ func Error(err error, msg string, tree ...int) {
 			Error:   err.Error(),
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
-		Queue.Publish(log)
+		if err := conn.WriteJSON(log); err != nil {
+			fmt.Println(err)
+			errChan <- err
+		}
 	}
 }
 
@@ -36,7 +42,10 @@ func Warning(msg string, tree ...int) {
 			Message: msg,
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
-		Queue.Publish(log)
+		if err := conn.WriteJSON(log); err != nil {
+			fmt.Println(err)
+			errChan <- err
+		}
 	}
 }
 
@@ -54,7 +63,10 @@ func Info(msg string, tree ...int) {
 			Message: msg,
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
-		Queue.Publish(log)
+		if err := conn.WriteJSON(log); err != nil {
+			fmt.Println(err)
+			errChan <- err
+		}
 	}
 }
 
@@ -73,6 +85,9 @@ func Fatal(err error, msg string, tree ...int) {
 			Error:   err.Error(),
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
-		Queue.Publish(log)
+		if err := conn.WriteJSON(log); err != nil {
+			fmt.Println(err)
+			errChan <- err
+		}
 	}
 }

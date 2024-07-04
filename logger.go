@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,30 +10,17 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/gorilla/websocket"
-	"github.com/ysmood/goob"
 )
 
 var (
 	chExit  = make(chan struct{})
 	errChan = make(chan error, 1)
-	Queue   *goob.Observable
+	conn    *websocket.Conn
 )
-
-func init() {
-	Queue = goob.New(context.Background())
-}
 
 func consoleMessage() {
 	c := color.New(color.FgHiGreen, color.Bold)
 	c.Println("Logger client successfully connected to the Server")
-}
-
-func writeMessage(con *websocket.Conn) {
-	for e := range Queue.Subscribe(context.TODO()) {
-		if err := con.WriteJSON(e); err != nil {
-			errChan <- fmt.Errorf("error sending data: %v", err)
-		}
-	}
 }
 
 func Register(app string) {
@@ -63,12 +49,12 @@ START:
 		time.Sleep(5 * time.Second)
 		goto START
 	}
-	go writeMessage(con)
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	defer signal.Stop(quit)
 	consoleMessage()
-	pingTicker := time.NewTicker(3 * time.Minute)
+	pingTicker := time.NewTicker(1 * time.Minute)
 	defer func() {
 		pingTicker.Stop()
 		con.Close()
