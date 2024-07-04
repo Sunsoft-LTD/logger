@@ -5,7 +5,6 @@ go 1.22.4
 require (
 	github.com/fatih/color v1.17.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/ysmood/goob v0.4.0
 )
 
 require (

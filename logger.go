@@ -49,7 +49,7 @@ START:
 		time.Sleep(5 * time.Second)
 		goto START
 	}
-
+	conn = con
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	defer signal.Stop(quit)
