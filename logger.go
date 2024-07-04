@@ -38,7 +38,7 @@ func Register(app string) {
 	header := http.Header{
 		"Logger-App-Name": []string{app},
 	}
-	serverUrl, err := url.Parse("ws://127.0.0.1:7000/logger")
+	serverUrl, err := url.Parse("ws://127.0.0.1:7001/logger")
 	if err != nil {
 		os.Exit(0)
 	}
