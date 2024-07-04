@@ -29,6 +29,14 @@ func consoleMessage() {
 	c.Println("Logger client successfully connected to the Server")
 }
 
+func writeMessage(con *websocket.Conn) {
+	for e := range Queue.Subscribe(context.TODO()) {
+		if err := con.WriteJSON(e); err != nil {
+			errChan <- fmt.Errorf("error sending data: %v", err)
+		}
+	}
+}
+
 func Register(app string) {
 	reconnect := false
 	defer func() {
@@ -51,9 +59,11 @@ func Register(app string) {
 START:
 	con, _, err := websocket.DefaultDialer.Dial(serverUrl.String(), header)
 	if err != nil {
+		fmt.Println(err)
 		time.Sleep(5 * time.Second)
 		goto START
 	}
+	go writeMessage(con)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	defer signal.Stop(quit)
@@ -65,18 +75,16 @@ START:
 	}()
 	for {
 		select {
-		case e := <-Queue.Subscribe(context.TODO()):
-			if err := con.WriteJSON(e); err != nil {
-				errChan <- fmt.Errorf("error sending data: %v", err)
-			}
 		case err := <-errChan:
 			reconnect = true
+			fmt.Println(err)
 			panic(err)
 		case <-quit:
 			close(chExit)
 		case <-pingTicker.C:
-			if err := con.WriteMessage(websocket.PingMessage, []byte("ping")); err != nil {
+			if err := con.WriteJSON(map[string]bool{"ping": true}); err != nil {
 				errChan <- fmt.Errorf("ping sending error")
+				fmt.Println(err)
 				return
 			}
 		case <-chExit:
