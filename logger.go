@@ -1,82 +1,152 @@
 package logger
 
 import (
-	"fmt"
-	"net/http"
-	"net/url"
-	"os"
-	"os/signal"
-	"time"
+	"runtime"
 
-	"github.com/fatih/color"
-	"github.com/gorilla/websocket"
+	"github.com/go-resty/resty/v2"
 )
 
-var (
-	chExit  = make(chan struct{})
-	errChan = make(chan error, 1)
-	conn    *websocket.Conn
+const (
+	URL string = "http://localhost:7001/"
+	Inf int    = iota + 1
+	Warn
+	Err
+	Fat
 )
 
-func consoleMessage() {
-	c := color.New(color.FgHiGreen, color.Bold)
-	c.Println("Logger client successfully connected to the Server")
+type (
+	Logger struct {
+		App string
+	}
+
+	Log struct {
+		Level   int    `json:"level"`
+		Line    int    `json:"line"`
+		File    string `json:"file"`
+		Func    string `json:"func"`
+		Message string `json:"message"`
+		Error   string `json:"error,omitempty"`
+	}
+
+	User struct {
+		Name string `json:"name"`
+		Id   any    `json:"id"`
+		Role any    `json:"role"`
+	}
+
+	Access struct {
+		Ip        string `json:"ip"`
+		Route     string `json:"route"`
+		Method    string `json:"method"`
+		UserAgent string `json:"user_agent"`
+		User      *User  `json:"user"`
+	}
+)
+
+func Register(app string) *Logger {
+	return &Logger{App: app}
 }
 
-func Register(app string) {
-	reconnect := false
-	defer func() {
-		if r := recover(); r != nil {
-			err, _ := r.(error)
-			fmt.Println("websocket panic error", err)
-			if reconnect {
-				time.Sleep(5 * time.Second)
-				Register(app)
-			}
+// Error log
+func (lg *Logger) Error(err error, msg string, tree ...int) {
+	num := 1
+	if len(tree) > 0 {
+		num = tree[0]
+	}
+	pc, file, line, ok := runtime.Caller(num)
+	if ok {
+		log := &Log{
+			File:    file,
+			Line:    line,
+			Level:   Err,
+			Message: msg,
+			Error:   err.Error(),
+			Func:    runtime.FuncForPC(pc).Name(),
 		}
-	}()
-	header := http.Header{
-		"Logger-App-Name": []string{app},
+		client := resty.New()
+		client.SetHeaders(map[string]string{
+			"Content-Type":    "application/json",
+			"Accept":          "application/json",
+			"Logger-App-Name": lg.App,
+		}).R().SetBody(log).Post(URL)
 	}
-	serverUrl, err := url.Parse("ws://127.0.0.1:7001/logger")
-	if err != nil {
-		os.Exit(0)
+}
+
+func (lg *Logger) Warning(msg string, tree ...int) {
+	num := 1
+	if len(tree) > 0 {
+		num = tree[0]
 	}
-START:
-	con, _, err := websocket.DefaultDialer.Dial(serverUrl.String(), header)
-	if err != nil {
-		fmt.Println(err)
-		time.Sleep(5 * time.Second)
-		goto START
-	}
-	conn = con
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	defer signal.Stop(quit)
-	consoleMessage()
-	pingTicker := time.NewTicker(1 * time.Minute)
-	defer func() {
-		pingTicker.Stop()
-		con.Close()
-	}()
-	for {
-		select {
-		case err := <-errChan:
-			reconnect = true
-			fmt.Println(err)
-			panic(err)
-		case <-quit:
-			close(chExit)
-		case <-pingTicker.C:
-			if err := con.WriteJSON(map[string]bool{"ping": true}); err != nil {
-				errChan <- fmt.Errorf("ping sending error")
-				fmt.Println(err)
-				return
-			}
-		case <-chExit:
-			con.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			os.Exit(0)
-			return
+	pc, file, line, ok := runtime.Caller(num)
+	if ok {
+		log := &Log{
+			File:    file,
+			Line:    line,
+			Level:   Warn,
+			Message: msg,
+			Func:    runtime.FuncForPC(pc).Name(),
 		}
+		client := resty.New()
+		client.SetHeaders(map[string]string{
+			"Content-Type":    "application/json",
+			"Accept":          "application/json",
+			"Logger-App-Name": lg.App,
+		}).R().SetBody(log).Post(URL)
 	}
+}
+
+func (lg *Logger) Info(msg string, tree ...int) {
+	num := 1
+	if len(tree) > 0 {
+		num = tree[0]
+	}
+	pc, file, line, ok := runtime.Caller(num)
+	if ok {
+		log := &Log{
+			File:    file,
+			Line:    line,
+			Level:   Inf,
+			Message: msg,
+			Func:    runtime.FuncForPC(pc).Name(),
+		}
+		client := resty.New()
+		client.SetHeaders(map[string]string{
+			"Content-Type":    "application/json",
+			"Accept":          "application/json",
+			"Logger-App-Name": lg.App,
+		}).R().SetBody(log).Post(URL)
+	}
+}
+
+func (lg *Logger) Fatal(err error, msg string, tree ...int) {
+	num := 1
+	if len(tree) > 0 {
+		num = tree[0]
+	}
+	pc, file, line, ok := runtime.Caller(num)
+	if ok {
+		log := &Log{
+			File:    file,
+			Line:    line,
+			Level:   Fat,
+			Message: msg,
+			Error:   err.Error(),
+			Func:    runtime.FuncForPC(pc).Name(),
+		}
+		client := resty.New()
+		client.SetHeaders(map[string]string{
+			"Content-Type":    "application/json",
+			"Accept":          "application/json",
+			"Logger-App-Name": lg.App,
+		}).R().SetBody(log).Post(URL)
+	}
+}
+
+func (lg *Logger) AccessLog(log *Access) {
+	client := resty.New()
+	client.SetHeaders(map[string]string{
+		"Content-Type":    "application/json",
+		"Accept":          "application/json",
+		"Logger-App-Name": lg.App,
+	}).R().SetBody(log).Post(URL)
 }
