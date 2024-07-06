@@ -44,6 +44,10 @@ type (
 )
 
 func Register(app string) *Logger {
+	client := resty.New()
+	go client.SetHeaders(map[string]string{
+		"Logger-App-Name": app,
+	}).R().Post(URL + "register")
 	return &Logger{App: app}
 }
 
@@ -68,7 +72,7 @@ func (lg *Logger) Error(err error, msg string, tree ...int) {
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
-		}).R().SetBody(log).Post(URL)
+		}).R().SetBody(log).Post(URL + "logs")
 	}
 }
 
@@ -91,7 +95,7 @@ func (lg *Logger) Warning(msg string, tree ...int) {
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
-		}).R().SetBody(log).Post(URL)
+		}).R().SetBody(log).Post(URL + "logs")
 	}
 }
 
@@ -114,7 +118,7 @@ func (lg *Logger) Info(msg string, tree ...int) {
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
-		}).R().SetBody(log).Post(URL)
+		}).R().SetBody(log).Post(URL + "logs")
 	}
 }
 
@@ -138,7 +142,7 @@ func (lg *Logger) Fatal(err error, msg string, tree ...int) {
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
-		}).R().SetBody(log).Post(URL)
+		}).R().SetBody(log).Post(URL + "logs")
 	}
 }
 
@@ -148,5 +152,5 @@ func (lg *Logger) AccessLog(log *Access) {
 		"Content-Type":    "application/json",
 		"Accept":          "application/json",
 		"Logger-App-Name": lg.App,
-	}).R().SetBody(log).Post(URL)
+	}).R().SetBody(log).Post(URL + "logs")
 }
