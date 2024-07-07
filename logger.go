@@ -68,7 +68,7 @@ func (lg *Logger) Error(err error, msg string, tree ...int) {
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
 		client := resty.New()
-		go client.SetHeaders(map[string]string{
+		client.SetHeaders(map[string]string{
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
@@ -91,7 +91,7 @@ func (lg *Logger) Warning(msg string, tree ...int) {
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
 		client := resty.New()
-		go client.SetHeaders(map[string]string{
+		client.SetHeaders(map[string]string{
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
@@ -114,7 +114,7 @@ func (lg *Logger) Info(msg string, tree ...int) {
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
 		client := resty.New()
-		go client.SetHeaders(map[string]string{
+		client.SetHeaders(map[string]string{
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
@@ -138,7 +138,7 @@ func (lg *Logger) Fatal(err error, msg string, tree ...int) {
 			Func:    runtime.FuncForPC(pc).Name(),
 		}
 		client := resty.New()
-		go client.SetHeaders(map[string]string{
+		client.SetHeaders(map[string]string{
 			"Content-Type":    "application/json",
 			"Accept":          "application/json",
 			"Logger-App-Name": lg.App,
@@ -148,7 +148,7 @@ func (lg *Logger) Fatal(err error, msg string, tree ...int) {
 
 func (lg *Logger) AccessLog(log *Access) {
 	client := resty.New()
-	go client.SetHeaders(map[string]string{
+	client.SetHeaders(map[string]string{
 		"Content-Type":    "application/json",
 		"Accept":          "application/json",
 		"Logger-App-Name": lg.App,
