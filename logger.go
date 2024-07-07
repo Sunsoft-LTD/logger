@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	URL string = "http://localhost:7001/"
+	URL string = "http://127.0.0.1:7001/"
 	Inf int    = iota + 1
 	Warn
 	Err
@@ -45,7 +45,7 @@ type (
 
 func Register(app string) *Logger {
 	client := resty.New()
-	go client.SetHeaders(map[string]string{
+	client.SetHeaders(map[string]string{
 		"Logger-App-Name": app,
 	}).R().Post(URL + "register")
 	return &Logger{App: app}
