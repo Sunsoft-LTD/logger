@@ -64,8 +64,12 @@ func (lg *Logger) Error(err error, msg string, tree ...int) {
 			Line:    line,
 			Level:   Err,
 			Message: msg,
-			Error:   err.Error(),
 			Func:    runtime.FuncForPC(pc).Name(),
+		}
+		if err == nil {
+			log.Error = ""
+		} else {
+			log.Error = err.Error()
 		}
 		client := resty.New()
 		client.SetHeaders(map[string]string{
@@ -134,8 +138,12 @@ func (lg *Logger) Fatal(err error, msg string, tree ...int) {
 			Line:    line,
 			Level:   Fat,
 			Message: msg,
-			Error:   err.Error(),
 			Func:    runtime.FuncForPC(pc).Name(),
+		}
+		if err == nil {
+			log.Error = ""
+		} else {
+			log.Error = err.Error()
 		}
 		client := resty.New()
 		client.SetHeaders(map[string]string{
